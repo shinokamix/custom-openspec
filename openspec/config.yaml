@@ -13,8 +13,8 @@ schema: spec-driven
 # Add custom rules for specific artifacts.
 # Example:
 #   rules:
-#     proposal:
-#       - Keep proposals under 500 words
+#     specs:
+#       - Keep each capability focused on one observable behavior
 #       - Always include a "Non-goals" section
 #     tasks:
 #       - Break tasks into chunks of max 2 hours

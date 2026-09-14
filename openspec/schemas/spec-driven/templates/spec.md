@@ -1,11 +1,16 @@
 ## Purpose
-<!-- New capabilities only: one or two sentences (50+ characters) on what this capability is for. Delete this section for an existing capability. -->
+
+<!-- Опиши проблему, результат пользователя и границы возможности. Для изменения
+     существующей возможности удали эту секцию. -->
 
 ## ADDED Requirements
 
-### Requirement: <!-- requirement name -->
-<!-- requirement text -->
+### Requirement: <!-- Название требования -->
 
-#### Scenario: <!-- scenario name -->
-- **WHEN** <!-- condition -->
-- **THEN** <!-- expected outcome -->
+<!-- Опиши обязательное поведение с помощью MUST или SHALL. Добавь входные и
+     выходные данные, ошибки, ограничения и общие контракты, если они нужны. -->
+
+#### Scenario: <!-- Название сценария -->
+
+- **WHEN** <!-- исходное условие или действие -->
+- **THEN** <!-- наблюдаемый результат -->
