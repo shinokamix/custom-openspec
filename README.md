@@ -6,9 +6,9 @@
 
 | Действие | Codex | Claude Code |
 | --- | --- | --- |
-| Создать план изменения | `$openspec-propose` | `/opsx:propose` |
-| Выполнить задачи | `$openspec-apply-change` | `/opsx:apply` |
-| Закрыть изменение | `$openspec-archive-change` | `/opsx:archive` |
+| Создать план изменения | `$openspec-propose` | `/openspec-propose` |
+| Выполнить задачи | `$openspec-apply-change` | `/openspec-apply-change` |
+| Закрыть изменение | `$openspec-archive-change` | `/openspec-archive-change` |
 
 Схема `spec-driven` создает два артефакта:
 
