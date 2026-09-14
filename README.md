@@ -1,5 +1,13 @@
 # Custom OpenSpec
 
-Чистая установка OpenSpec для Codex и Claude Code. Пока используется оригинальная схема `spec-driven` без локальных изменений.
+Упрощённый набор действий OpenSpec для Codex и Claude Code.
 
-Дальнейшие упрощения процесса добавляются по одному после согласования.
+Доступны три действия:
+
+| Действие | Codex | Claude Code |
+| --- | --- | --- |
+| Создать план изменения | `$openspec-propose` | `/opsx:propose` |
+| Выполнить задачи | `$openspec-apply-change` | `/opsx:apply` |
+| Закрыть изменение | `$openspec-archive-change` | `/opsx:archive` |
+
+Проект использует исходную схему `spec-driven`. Шаблоны `proposal.md`, `spec.md`, `design.md` и `tasks.md` пока не изменены.

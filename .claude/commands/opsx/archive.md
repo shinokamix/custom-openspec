@@ -99,46 +99,24 @@ Archive a completed change in the experimental workflow.
    - If already synced: "Archive now", "Sync anyway", "Cancel"
 
    Route on the answer:
-   - "Cancel" — stop, do not archive
-   - "Archive without syncing" or "Archive now" — proceed to archive
-   - "Sync now" or "Sync anyway" — sync, then verify (below)
-   - Anything else — ask again rather than archiving
-
-   Before a selected sync writes any main spec, run
-   `openspec instructions specs --change "<name>" --json` once with the same
-   selected-root flags. Require a zero exit status and valid artifact-instruction
-   JSON. If the lookup fails or returns invalid JSON, report the error and stop
-   before writing any main spec or moving the change. A valid response with omitted
-   `rules` is the no-rules case. Apply returned `rules` only to the content and
-   form of main specs produced by this merge; do not use them as archive guidance,
-   change CLI behavior, or copy the rule text into any output file.
-
-   Then run the `/opsx:sync` workflow inline (agent-driven intelligent merge) for change '<name>', passing the delta spec analysis and the fetched specs-rule snapshot from above, and wait for it to finish. The inline sync must reuse that snapshot without fetching `specs` instructions again. Do not delegate it to a background task — step 5 would move `changeRoot` out from under a sync that is still reading it, leaving the change archived and the main specs never updated. If your agent can only run it by delegation, delegate synchronously and wait for the result.
-
-   Then re-run the comparison from the top of this step against every capability that has a delta spec in `artifactPaths.specs.existingOutputPaths` — not only the ones the sync reports it touched. A successful sync leaves nothing left to apply, so each capability must now read as already synced:
-   - ADDED requirements present
-   - MODIFIED requirements carrying the scenario and description changes named in the delta, with their other scenarios intact
-   - REMOVED requirements gone — and where this sync retired a capability (removed its last requirement, leaving `## Requirements` empty), its main spec deleted rather than left empty; a spec the sync deliberately kept and reported is also a match
-   - RENAMED requirements present under the new name and absent under the old one
-
-   If the sync failed, or any capability does not match, report what differs and stop — do not archive. Nothing has moved and `changeRoot` is intact, so the user can fix the mismatch or re-run the sync and start the archive again.
+   - "Cancel": stop and leave the change active
+   - "Archive without syncing": archive with `--skip-specs`
+   - "Archive now", "Sync now", or "Sync anyway": archive without `--skip-specs`
+   - Anything else: ask again
 
 5. **Perform the archive**
 
-   Create an `archive` directory under `planningHome.changesDir` if it doesn't exist:
+   Let the OpenSpec CLI update the main specs, validate the change, and move it to the archive:
    ```bash
-   mkdir -p "<planningHome.changesDir>/archive"
+   openspec archive "<name>" --yes --json
    ```
 
-   Generate the target name: use the change name as-is when it already starts with a `YYYY-MM-DD-` prefix; otherwise prepend the current date as `YYYY-MM-DD-<change-name>`. Never stack a second date (same rule as `openspec archive`).
-
-   **Check if target already exists:**
-   - If yes: Fail with error, suggest renaming existing archive or using different date
-   - If no: Move `changeRoot` to the archive directory
-
+   If the user chose to archive without syncing, run:
    ```bash
-   mv "<changeRoot>" "<planningHome.changesDir>/archive/<target-name>"
+   openspec archive "<name>" --yes --skip-specs --json
    ```
+
+   Keep the selected `--store` flag on the command. If the command fails, report its error and leave the change active.
 
 6. **Display summary**
 
@@ -215,8 +193,7 @@ Target archive directory already exists.
 - Don't block archive on warnings - just inform and confirm
 - Preserve .openspec.yaml when moving to archive (it moves with the directory)
 - Show clear summary of what happened
-- If sync is requested, run the `/opsx:sync` workflow inline (agent-driven)
-- Never archive while a spec sync is still in flight — run the sync inline and verify the main specs before moving `changeRoot`
+- Use `openspec archive` for both spec updates and the archive move
 - If delta specs exist, always run the sync assessment and show the combined summary before prompting
 - Apply relevant runtime context and report conflicts; operation guidance remains advisory
 - Consider every guidance entry and explain any inapplicable or conflicting advice
