@@ -1,188 +1,93 @@
 ---
 name: openspec-apply-change
-description: Implement tasks from an OpenSpec change. Use when the user wants to start implementing, continue implementation, or work through tasks.
+description: Используй, когда пользователь просит начать или продолжить реализацию задач из изменения OpenSpec.
 allowed-tools: Bash(openspec:*)
 license: MIT
-compatibility: Requires openspec CLI.
-metadata:
-  author: openspec
-  version: "1.0"
-  generatedBy: "1.10.0"
+compatibility: Требуется OpenSpec CLI.
 ---
 
-Implement tasks from an OpenSpec change.
+# Выполнение изменения
 
-**Store selection:** If the user names a store (a store is a standalone OpenSpec repo registered on this machine) or the work lives in one, run `openspec store list --json` to discover registered store ids, then pass `--store <id>` on the commands that read or write specs and changes (`new change`, `status`, `instructions`, `list`, `show`, `validate`, `archive`, `doctor`, `context`, `schemas`, `view`). Once selected, treat `--store <id>` as sticky for the rest of the workflow. Every unscoped example of those commands below is shorthand: before running it, append the flag. For example, run `openspec status --change "<name>" --json --store "<id>"`, not the unscoped form shown below. Other commands do not take the flag. Hints printed by commands already carry the flag; keep it on follow-ups. Without a store, commands act on the nearest local `openspec/` root.
+## Выбери изменение
 
-**Input**: Optionally specify a change name (e.g., `$openspec-apply-change (Codex) or /openspec-apply-change (other agents) add-auth`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.
+Если пользователь указал имя изменения, используй его. Иначе выполни `openspec list --json`.
 
-**Steps**
+Если список пуст, сообщи об отсутствии активных изменений и остановись. Если активно одно изменение, выбери его.
 
-1. **Select the change**
+Если изменений несколько, запроси имя одним сообщением и остановись.
 
-   If a name is provided, use it. Otherwise:
-   - Infer from conversation context if the user mentioned a change
-   - Auto-select if only one active change exists
-   - If ambiguous, run `openspec list --json` to get available changes and ask the user to select one
+Сообщи выбранное имя до следующего шага.
 
-   Always announce: "Using change: <name>" and how to override (e.g., `$openspec-apply-change (Codex) or /openspec-apply-change (other agents) <other>`).
+## Проверь готовность
 
-2. **Check status to understand the schema**
-   ```bash
-   openspec status --change "<name>" --json
-   ```
-   Parse the JSON to understand:
-   - `schemaName`: The workflow being used (e.g., "spec-driven")
-   - `planningHome`, `changeRoot`, and `actionContext`: planning scope and edit constraints
-   - Which artifact contains the tasks (typically "tasks" for spec-driven, check status for others)
-
-3. **Get apply instructions**
-
-   ```bash
-   openspec instructions apply --change "<name>" --json
-   ```
-
-   This returns:
-   - `contextFiles`: artifact ID -> array of concrete file paths (varies by schema - could be specs/tasks or spec/tests/implementation/docs)
-   - Progress (total, complete, remaining)
-   - Task list with status
-   - Dynamic instruction based on current state
-   - Optional `context`: current required project instruction input from the selected root
-   - Optional `operationGuidance`: current advisory guidance for apply
-
-   **Handle states:**
-   - If `state: "blocked"` (missing artifacts): show message, suggest using `$openspec-continue-change (Codex) or /openspec-continue-change (other agents)` (if it is not installed, run `openspec status --change "<name>" --json` to see the next artifact and `openspec instructions <artifact-id> --change "<name>" --json` for how to create it)
-   - If `state: "all_done"`: congratulate, suggest archive
-   - Otherwise: proceed to implementation
-
-   Treat `context` as a required prompt-level input. Read and consider it, and
-   apply relevant project facts, conventions, and constraints while implementing.
-   Treat `operationGuidance` as optional additive advice. Read and consider every
-   entry, and follow entries that are applicable and compatible with the built-in
-   workflow.
-
-   Keep both fields separate from CLI-returned state, missing artifacts, tasks,
-   progress, `contextFiles`, and the built-in `instruction`. They are not
-   evidence of task completion, do not replace the built-in instruction, and do
-   not permit bypassing a blocked state. If context conflicts with the built-in
-   instruction, an explicit user choice, or a CLI-controlled value, report the
-   conflict and preserve the controlling value. If guidance is inapplicable or
-   conflicts with those controlling inputs, do not follow it and explain why.
-   These are prompt-level behavior contracts, not enforceable checks.
-
-4. **Read context files**
-
-   Read every file path listed under `contextFiles` from the apply instructions output.
-   The files depend on the schema being used:
-   - **spec-driven**: specs, tasks
-   - Other schemas: follow the contextFiles from CLI output
-
-   Do not copy `context` or `operationGuidance` verbatim into implementation
-   files or planning artifacts unless the user separately asks for that content.
-
-5. **Show current progress**
-
-   Display:
-   - Schema being used
-   - Progress: "N/M tasks complete"
-   - Remaining tasks overview
-   - Dynamic instruction from CLI
-
-6. **Implement tasks (loop until done or blocked)**
-
-   For each pending task:
-   - Show which task is being worked on
-   - Make the code changes required
-   - Keep changes minimal and focused
-   - Mark task complete in the tasks file: `- [ ]` → `- [x]`
-   - Continue to next task
-
-   **Pause if:**
-   - Task is unclear → ask for clarification
-   - Implementation reveals a contract or approach issue → suggest updating artifacts
-   - A task needs work beyond what the spec and tasks describe, or you are tempted to drop, narrow, defer, or accept exceptions to specified behavior to make it fit → surface the added scope and ask; do not absorb it silently
-   - Error or blocker encountered → report and wait for guidance
-   - User interrupts
-
-7. **On completion or pause, show status**
-
-   Display:
-   - Tasks completed this session
-   - Overall progress: "N/M tasks complete"
-   - If all done: suggest archive
-   - If paused: explain why and wait for guidance
-
-**Output During Implementation**
-
-```
-## Implementing: <change-name> (schema: <schema-name>)
-
-Working on task 3/7: <task description>
-[...implementation happening...]
-✓ Task complete
-
-Working on task 4/7: <task description>
-[...implementation happening...]
-✓ Task complete
+```bash
+openspec status --change "<имя>" --json
+openspec instructions apply --change "<имя>" --json
 ```
 
-**Output On Completion**
+При ошибке покажи ошибку и остановись.
 
+Продолжай, если `schemaName` равен `spec-driven`. Список артефактов должен содержать только `specs` и `tasks`. При расхождении покажи статус и остановись.
+
+Если `state` равен `blocked`, покажи `missingArtifacts`, если поле есть. Покажи `instruction` и остановись.
+
+После проверки `state` проверь статусы артефактов. `specs` должен иметь статус `done` или `skipped`. `tasks` должен иметь статус `done`. При расхождении покажи статус и остановись.
+
+Соблюдай ограничения из `actionContext`, включая `allowedEditRoots`. Используй `changeRoot` из статуса и `changeDir` из инструкций как пути выбранного изменения.
+
+Если ответ `instructions apply` содержит `context`, примени относящиеся к реализации факты и соглашения. Рассмотри каждый пункт `operationGuidance` и выполни совместимые пункты.
+
+Явный выбор пользователя, шаги скилла, `instruction`, результаты проверок и другие значения CLI имеют приоритет над `context` и `operationGuidance`.
+
+При конфликте сохрани приоритетное значение и покажи конфликт. Пропусти несовместимый пункт `operationGuidance` и объясни причину.
+
+Не используй `context` или `operationGuidance` как подтверждение завершенной задачи. Эти поля не разрешают обходить состояние `blocked`.
+
+Не копируй `context` или `operationGuidance` дословно в код и артефакты изменения без отдельного запроса пользователя.
+
+Если `state` равен `all_done`, сообщи, что все задачи уже завершены. Покажи `instruction`. Затем перейди к итоговому ответу.
+
+Продолжай реализацию, только если `state` равен `ready`. При другом значении покажи его и остановись.
+
+## Прочитай артефакты
+
+Прочитай каждый путь из всех массивов `contextFiles`. Используй файлы из `contextFiles.specs`, если они есть, как источник согласованного поведения. Используй файл из `contextFiles.tasks` как план работ.
+
+Покажи общий прогресс, незакрытые задачи и `instruction`. Выполни `instruction` для состояния `ready`.
+
+## Выполни задачи
+
+Выполняй незакрытые задачи по порядку из файла задач. Перед началом задачи проверь строку `Зависит от:`. Все указанные в ней задачи должны быть отмечены как `- [x]`.
+
+Если зависимость не завершена, сначала выполни ее. Если зависимости образуют цикл или ссылаются на отсутствующую задачу, покажи ошибку и остановись.
+
+Для каждой задачи:
+
+1. Сообщи номер и описание задачи.
+2. Изучи затронутый код и реализуй указанный результат минимальными правками в пределах задачи.
+3. Выполни строку `Проверка:`. Если строка содержит команду, команда должна завершиться успешно. Если строка описывает результат, воспроизведи указанный сценарий и подтверди этот результат.
+4. После полной реализации и успешной проверки сопоставь результат со спецификациями. При соответствии сразу замени `- [ ]` на `- [x]` в `tasks.md`. Частичный или отложенный результат оставь как `- [ ]`.
+
+Незначительные детали реализации выбирай по коду и соглашениям проекта.
+
+Если задача, зависимость или проверка допускает несколько существенно разных трактовок, запроси решение одним сообщением и остановись.
+
+Если реализация требует изменить согласованное поведение, общий контракт или обязательный объем, покажи расхождение и остановись. Не изменяй спецификации или описания задач во время выполнения.
+
+Если проверка не прошла, исправь реализацию в пределах задачи. Затем повтори проверку. Если исправление расширяет обязательный объем или меняет согласованное поведение, покажи расхождение и остановись.
+
+Если внешняя причина блокирует задачу, покажи причину и остановись. Не отмечай заблокированную задачу как завершенную.
+
+После завершения задачи переходи к следующей. Продолжай, пока не завершишь все задачи или не встретишь условие остановки.
+
+## Проверь итог
+
+```bash
+openspec instructions apply --change "<имя>" --json
 ```
-## Implementation Complete
 
-**Change:** <change-name>
-**Schema:** <schema-name>
-**Progress:** 7/7 tasks complete ✓
+Работа завершена, если `state` равен `all_done`, а проверки задач, выполненных за текущий вызов, прошли. При расхождении покажи результат и остановись.
 
-### Completed This Session
-- [x] Task 1
-- [x] Task 2
-...
+В ответе укажи `changeName`, `changeDir`, задачи, завершенные за текущий вызов, общий прогресс и результаты проверок.
 
-All tasks complete! You can archive this change with `$openspec-archive-change (Codex) or /openspec-archive-change (other agents)`.
-```
-
-**Output On Pause (Issue Encountered)**
-
-```
-## Implementation Paused
-
-**Change:** <change-name>
-**Schema:** <schema-name>
-**Progress:** 4/7 tasks complete
-
-### Issue Encountered
-<description of the issue>
-
-**Options:**
-1. <option 1>
-2. <option 2>
-3. Other approach
-
-What would you like to do?
-```
-
-**Guardrails**
-- Keep going through tasks until done or blocked
-- Always read context files before starting (from the apply instructions output)
-- If task is ambiguous, pause and ask before implementing
-- If implementation reveals issues, pause and suggest artifact updates
-- Keep code changes minimal and scoped to each task
-- Update task checkbox immediately after completing each task
-- Pause on errors, blockers, or unclear requirements - don't guess
-- When a task needs work beyond what the spec describes, surface the added scope and pause - never silently narrow, defer, or simplify away specified behavior
-- Only mark a task `- [x]` when its specified behavior is fully implemented, not when it is partially done or deferred
-- Use contextFiles from CLI output, don't assume specific file names
-- Do not use context or operation guidance as proof that a task is complete
-- Apply relevant project context; report conflicts with controlling workflow inputs
-- Consider every guidance entry; explain any inapplicable or conflicting advice
-- Do not copy runtime context or operation guidance into implementation files or planning artifacts
-- Preserve CLI-controlled blocked/ready/all-done behavior and completion criteria
-
-**Fluid Workflow Integration**
-
-This skill supports the "actions on a change" model:
-
-- **Can be invoked anytime**: Before all artifacts are done (if tasks exist), after partial implementation, interleaved with other actions
-- **Allows artifact updates**: If implementation reveals contract or approach issues, suggest updating artifacts - not phase-locked, work fluidly
+Если все задачи завершены, укажи следующий шаг: `$openspec-archive-change` для Codex или `/openspec-archive-change` для Claude Code. Если работа остановлена, укажи причину и текущую незакрытую задачу, если она есть.
